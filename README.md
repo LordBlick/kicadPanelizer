@@ -38,6 +38,7 @@ From command line in dir with script:
 
 Unix based OS user can set execute privileges to execute as any other shell script:
 > chmod +x pcbPanelize
+
 > ./pcbPanelize
 
 To run it it's nessesary to install:
