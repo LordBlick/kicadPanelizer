@@ -29,13 +29,26 @@ Some screenshoot:
 
 This one program is designed as a maximum to facilitate as much as possible.
 
-= Installation =
-At this moment, only testing version of source code is avaliable in "Source" Tab.
+## Installation
+Unpack newest release to prefered dir.
+
+## Running initially testing script.
+From command line in dir with script:
+> python pcbPanelize
+
+Unix based OS user can set execute privileges to execute as any other shell script:
+> chmod +x pcbPanelize
+> ./pcbPanelize
 
 To run it it's nessesary to install:
-- [Python interpreter].
-- [KiCAD] compiled with allowed python scripting.
+- [Python interpreter] in version 2 (On today newests is 2.7.8). Don't miss with version 3 (On today newests is 3.4.1).
+- [KiCAD] compiled with allowed python scripting. Minimum BZR version is 5160.
 - [GTK Libraries].
 [Python interpreter]: https://www.python.org/downloads/
 [KiCAD]: http://kicad-pcb.org/
 [GTK Libraries]: http://www.gtk.org/download/
+
+
+TO DO:
+- wxWidgets version, suitable to other KiCAD programs.
+- On today it recognized only straight lines of edge cutout layer.
