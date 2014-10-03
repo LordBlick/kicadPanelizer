@@ -1,0 +1,286 @@
+#!/usr/bin/env python2
+# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
+
+from pcbnew import LoadBoard, DRAWSEGMENT, DIMENSION, Edge_Cuts, wxPoint, \
+	FromMils, Cast_to_BOARD_ITEM
+from os import path as pt
+class panelizePCB:
+	def __init__(self):
+		self.uiInit()
+		self.appStart()
+		self.ui.gtk.main()
+
+	def uiInit(self):
+		from uiPanelize import panelizeUI
+		ui = self.ui = panelizeUI()
+		gtk = ui.gtk
+		gdk = gtk.gdk
+		ui.mainWindow.connect("destroy", lambda xargs: self.Exit())
+		self.TARGET_TYPE_URI_LIST = 80
+		self.lsDragAndDrop = [("text/uri-list", 0, self.TARGET_TYPE_URI_LIST )]
+		ui.logView.connect("drag-data-received", self.dragReceived)
+		ui.logView.drag_dest_set(gtk.DEST_DEFAULT_MOTION|gtk.DEST_DEFAULT_HIGHLIGHT|gtk.DEST_DEFAULT_DROP,
+			self.lsDragAndDrop, gdk.ACTION_COPY)
+		ui.logView.connect("drag-motion", self.dragMotion)
+		ui.buttonFileName.connect("clicked", lambda xargs: self.appFileName())
+		ui.buttonProceed.connect("clicked", lambda xargs: self.appPanelize())
+		ui.buttonExit.connect("clicked", lambda xargs: self.Exit())
+
+	def brdBounds(self, pcb):
+		outPoints = []
+		for Draw in pcb.GetDrawings():
+			if type(Draw) is DRAWSEGMENT and(Draw.GetShapeStr()=='Line')\
+				and(Draw.GetLayer()==Edge_Cuts):
+					Draw.SetWidth(FromMils(10))
+					for pnt in (Draw.GetStart(), Draw.GetEnd()):
+						if pnt not in outPoints:
+							outPoints.append(pnt)
+			elif type(Draw) is DIMENSION:
+				pcb.Delete(Draw)
+		x_min, y_min = x_max, y_max = outPoints[0]
+		for x, y in outPoints:
+			x_min = min(x_min, x)
+			y_min = min(y_min, y)
+			x_max = max(x_max, x)
+			y_max = max(y_max, y)
+		return (x_min, y_min), (x_max, y_max)
+
+	def brdRotate(self, wxCenter, angle):
+		for Item in self.lsItems:
+			Item.Rotate(wxCenter, angle)
+
+	def brdPosite(self, ptFrom, ptTo):
+		vect = wxPoint(ptTo[0]-ptFrom[0], ptTo[1]-ptFrom[1])
+		for Item in self.lsItems:
+			Item.Move(vect)
+
+	def brdItemize(self, pcb):
+		self.lsItems = []
+		for ItemStr in ('Drawings', 'Tracks', 'Modules'):
+			if ItemStr:
+				for Item in (getattr(pcb, 'Get'+ItemStr)()):
+					self.lsItems.append(Item)
+		nZones = pcb.GetAreaCount()
+		if nZones:
+			for idx in range(nZones):
+				Zone = pcb.GetArea(idx)
+				self.lsItems.append(Zone)
+
+	def brdDrawInEdge(self, Item, orginBounds):
+		if type(Item) is not DRAWSEGMENT:
+			return False
+		if Item.GetLayer()!=Edge_Cuts:
+			return False
+		(xa, ya), (xb, yb) = orginBounds
+		if Item.GetShapeStr()=='Line':
+			x1, y1 = Item.GetStart()
+			x2, y2 = Item.GetEnd()
+			if x1==x2 and(x1 in (xa, xb)):
+				return True
+			if y1==y2 and(y1 in (ya, yb)):
+				return True
+		# Other Shapes in Future
+		return False
+
+	def brdPanel(self, pcb, nx, ny, margin=0, SolMsk=0, angle=0):
+		if nx<1 or(ny<1):
+			return False
+		if SolMsk:
+			for Module in pcb.GetModules():
+				Module.SetLocalSolderMaskMargin(SolMsk)
+				for Pad in Module.Pads():
+					Pad.SetLocalSolderMaskMargin(0)
+		bd = self.brdBounds(pcb)
+		self.brdItemize(pcb)
+		wxCenter = wxPoint((bd[0][0]+bd[1][0])/2, (bd[0][1]+bd[1][1])/2)
+		if angle:
+			self.brdRotate( wxCenter, angle)
+		bs = FromMils(500), FromMils(500)
+		wxBase = wxPoint(*bs)
+		bd = self.brdBounds(pcb)
+		self.brdPosite(bd[0], wxBase)
+		bd = self.brdBounds(pcb)
+		vx, vy = bd[1][0]-bd[0][0], bd[1][1]-bd[0][1]
+		for x in range(nx):
+			for y in range(ny):
+				if x==0 and(y==0):
+					continue # Skip orgin
+				vect = wxPoint(x*vx, y*vy)
+				for Item in self.lsItems:
+					if self.brdDrawInEdge(Item, bd):
+							self.lsItems.pop(self.lsItems.index(Item))
+							pcb.Delete(Item)
+							continue # do not clone edge lines, it will be exchanged with generated grid
+					newItem = Item.Duplicate()
+					pcb.Add(newItem)
+					newItem.Move(vect)
+		for x in range(nx+1+2*bool(margin)):
+			line = DRAWSEGMENT(pcb)
+			line.SetLayer(Edge_Cuts)
+			line.SetWidth(FromMils(10))
+			if x==0: 0
+			if 0<x<(nx+2): 1
+			if x==nx+2: 1
+			xp = (bs[0]+x*vx, (bs[0]-margin, bs[0]+(x-1)*vx, bs[0]+(x-2)*vx+margin)[int(x>0)+int(x==nx+2)])[bool(margin)]
+			line.SetStart(wxPoint(xp, bs[1]-margin))
+			line.SetEnd(wxPoint(xp, bs[1]+ny*vy+margin))
+			pcb.Add(line)
+		for y in range(ny+1+2*bool(margin)):
+			line = DRAWSEGMENT(pcb)
+			line.SetLayer(Edge_Cuts)
+			line.SetWidth(FromMils(10))
+			yp = (bs[1]+y*vy, (bs[1]-margin, bs[1]+(y-1)*vy, bs[1]+(y-2)*vy+margin)[int(y>0)+int(y==ny+2)])[bool(margin)]
+			line.SetStart(wxPoint(bs[0]-margin, yp))
+			line.SetEnd(wxPoint(bs[0]+nx*vx+margin, yp))
+			pcb.Add(line)
+		pcb.SetAuxOrigin(wxBase)
+		pcb.SetGridOrigin(wxBase)
+		return True
+
+	def appUpdateFilename(self, bUpEmptyTxt=True):
+		ui = self.ui
+		fileName = self.cfg['lastFileName'] if (hasattr(self, 'cfg')\
+				and(self.cfg.has_key('lastFileName'))) else ''
+		if bUpEmptyTxt or(fileName):
+			ui.txtFilename.set_text(fileName.replace(pt.expanduser('~'), '~'))
+		ui.buttonProceed.set_sensitive(bool(fileName))
+
+	def appDropFilename(self):
+		self.cfg.pop('lastFileName')
+		self.appUpdateFilename()
+
+	def appPanelize(self):
+		ui = self.ui
+		if self.cfg.has_key('lastFileName') and(pt.isfile(self.cfg['lastFileName'])):
+			fileNamePCB = self.cfg['lastFileName']
+			uiFileName = fileNamePCB.replace(pt.expanduser('~'), '~')
+			fileNameSave = "%s-panel.%s" % tuple(fileNamePCB.rsplit('.', 1))
+			try:
+				pcb = LoadBoard(fileNamePCB)
+			except Exception as err:
+				ui.logView.insert_end("Unrecognized data found. Checkout that file:\n\t'%s'\nError message:\n\t%s\n"% (uiFileName, err))
+				self.appDropFilename()
+				return
+			ui.logView.insert_end("Reading file:\n\t'%s'\n"% uiFileName)
+			bDone = self.brdPanel(pcb, int(ui.numCols.get_value()), int(ui.numRows.get_value()),
+				margin=ui.margin, SolMsk=FromMils(5), angle=ui.lsAngle[ui.cbAngle.get_active()][1])
+			if bDone:
+				pcb.Save(fileNameSave)
+				ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
+			else:
+				ui.logView.insert_end("Something went wrong. Contact developers.\n"+\
+					"Provide info about current configuration and processed file:\n\t'%s'\n"% uiFileName)
+				self.appDropFilename()
+
+	def appFileName(self):
+		ui = self.ui
+		apw = ui.apw
+		lastFileName = self.cfg.get('lastFileName')
+		lastDir = pt.dirname(lastFileName) if lastFileName else ui.callDir
+		newFilename = apw.dialogChooseFile(parent=ui.mainWindow,
+			startDir=lastDir, title="Select file to read", bShowHidden=True)
+		if newFilename:
+			self.cfg['lastFileName'] = newFilename
+		self.appUpdateFilename()
+
+	def uriPath(self, uri):
+		from urllib import url2pathname as u2p
+		"get the path to file"
+		path = ""
+		#				Windows		nautilus, rox	xffm
+		for prefix in ('file:\\\\\\', 'file://', 'file:'):
+			if uri.startswith(prefix):
+				path = u2p(uri[len(prefix):]).strip('\r\n\x00')
+				break
+		return path
+
+	def dragReceived(self, widget, context, x, y, selection, target_type, timestamp):
+		ui = self.ui
+		if target_type == self.TARGET_TYPE_URI_LIST:
+			uri = selection.data.strip('\r\n\x00')
+			self.cfg['lastFileName'] = self.uriPath(uri.split(None, 1)[0])
+			self.appUpdateFilename()
+		return True
+
+	def dragMotion(self, widget, context, x, y, timestamp):
+		ui = self.ui
+		if not(ui.mainWindow.is_active()):
+			ui.mainWindow.present()
+		gdk = ui.gtk.gdk
+		context.drag_status(gdk.ACTION_COPY, timestamp)
+		return True
+
+	def appCfgLoad(self):
+		ui = self.ui
+		self.cfg = {}
+		self.cfgFileName = "%s/%s.conf" % (pt.expanduser('~/.config/kicad'), pt.basename(pt.abspath(__file__)))
+		print("cfg:%s" % self.cfgFileName.replace(pt.expanduser('~'), '~'))
+		if pt.isfile(self.cfgFileName):
+			hFileCfg = open(self.cfgFileName, 'r')
+			cfgData = hFileCfg.read()
+			hFileCfg.close()
+			for inputLine in cfgData.splitlines():
+				inputLine = inputLine.strip()
+				if inputLine and ':' in inputLine:
+					name, value = inputLine.split(':', 1)
+					if name=='lastFileName':
+						value = value.strip()
+					self.cfg[name] = value
+			self.lastcfg = self.cfg.copy()
+		else:
+			self.lastcfg = None
+		if self.cfg.has_key('Margin'):
+			if self.cfg['Margin'].isdigit():
+				ui.margin = int(self.cfg['Margin'])
+				ui.uiUnits('init')
+			else:
+				self.cfg.pop('Margin')
+		if self.cfg.has_key('Angle'):
+			if self.cfg['Angle'].isdigit():
+				cbSet = int(self.cfg['Angle'])
+				if cbSet in range(4):
+					ui.cbAngle.set_active(cbSet)
+			else:
+				self.cfg.pop('Angle')
+		for keyD in('Cols', 'Rows'):
+			if self.cfg.has_key(keyD):
+				try:
+					value = int(self.cfg[keyD])
+					getattr(ui, 'num'+keyD).set_value(value)
+				except ValueError:
+					self.cfg.pop(keyD)
+
+	def appCfgStore(self):
+		ui = self.ui
+		self.cfg['Cols'] = "%g" % ui.numCols.get_value()
+		self.cfg['Rows'] = "%g" % ui.numRows.get_value()
+		self.cfg['Angle'] = "%i" % ui.cbAngle.get_active()
+		self.cfg['Margin'] = "%i" % ui.margin
+		cfgDir = pt.dirname(self.cfgFileName)
+		from os import makedirs
+		if not(pt.isdir(cfgDir)):
+			makedirs(cfgDir, 0o755)
+		if self.lastcfg!=self.cfg:
+			hFileCfg = open(self.cfgFileName, 'w')
+			for cfg in self.cfg.keys():
+				hFileCfg.write(" % s:%s\n" % (cfg, self.cfg[cfg]))
+			hFileCfg.close()
+			print("Written config:%s...\n" % self.cfgFileName)
+
+	def appStart(self):
+		self.appCfgLoad()
+		self.appUpdateFilename(bUpEmptyTxt=False)
+		self.ui.uiEnter()
+
+	def appStop(self):
+		self.appCfgStore()
+
+	def Exit(self):
+		print("Exiting...\n")
+		self.appStop()
+		self.ui.uiExit()
+
+# Entry point
+if __name__ == "__main__":
+	panelizePCB()
