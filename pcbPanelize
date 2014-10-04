@@ -164,7 +164,7 @@ class panelizePCB:
 				return
 			ui.logView.insert_end("Reading file:\n\t'%s'\n"% uiFileName)
 			bDone = self.brdPanel(pcb, int(ui.numCols.get_value()), int(ui.numRows.get_value()),
-				margin=ui.margin, SolMsk=FromMils(5), angle=ui.lsAngle[ui.cbAngle.get_active()][1])
+				margin=ui.margin, SolMsk=FromMils(5), angle=ui.rfAngle.get_value())
 			if bDone:
 				pcb.Save(fileNameSave)
 				ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
@@ -240,7 +240,7 @@ class panelizePCB:
 			if self.cfg['Angle'].isdigit():
 				cbSet = int(self.cfg['Angle'])
 				if cbSet in range(4):
-					ui.cbAngle.set_active(cbSet)
+					ui.rfAngle.set_active(cbSet)
 			else:
 				self.cfg.pop('Angle')
 		for keyD in('Cols', 'Rows'):
@@ -253,9 +253,9 @@ class panelizePCB:
 
 	def appCfgStore(self):
 		ui = self.ui
-		self.cfg['Cols'] = "%g" % ui.numCols.get_value()
-		self.cfg['Rows'] = "%g" % ui.numRows.get_value()
-		self.cfg['Angle'] = "%i" % ui.cbAngle.get_active()
+		self.cfg['Cols'] = "%i" % ui.numCols.get_value()
+		self.cfg['Rows'] = "%i" % ui.numRows.get_value()
+		self.cfg['Angle'] = "%i" % ui.rfAngle.get_active()
 		self.cfg['Margin'] = "%i" % ui.margin
 		cfgDir = pt.dirname(self.cfgFileName)
 		from os import makedirs
