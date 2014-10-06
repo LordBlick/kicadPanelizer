@@ -9,7 +9,6 @@ class panelizePCB:
 	def __init__(self):
 		self.uiInit()
 		self.appStart()
-		self.ui.gtk.main()
 
 	def uiInit(self):
 		from uiPanelize import panelizeUI
@@ -83,7 +82,7 @@ class panelizePCB:
 		# Other Shapes in Future
 		return False
 
-	def brdPanel(self, pcb, nx, ny, margin=0, SolMsk=0, angle=0):
+	def brdPanel(self, pcb, nx, ny, spaceX=0, spaceY=0, margin=0, SolMsk=0, angle=0):
 		if nx<1 or(ny<1):
 			return False
 		if SolMsk:
@@ -106,7 +105,7 @@ class panelizePCB:
 			for y in range(ny):
 				if x==0 and(y==0):
 					continue # Skip orgin
-				vect = wxPoint(x*vx, y*vy)
+				vect = wxPoint(x*(vx+spaceX), y*(vy+spaceY))
 				for Item in self.lsItems:
 					if self.brdDrawInEdge(Item, bd):
 							self.lsItems.pop(self.lsItems.index(Item))
@@ -115,24 +114,28 @@ class panelizePCB:
 					newItem = Item.Duplicate()
 					pcb.Add(newItem)
 					newItem.Move(vect)
-		for x in range(nx+1+2*bool(margin)):
+		ds = lambda n, space: (((n+1)%2)^bool(margin))*bool(space)
+		maxX = nx+2*bool(margin)+(nx-1)*bool(spaceX)
+		endX = bs[0]+nx*vx+(nx-1)*spaceX+margin
+		maxY = ny+2*bool(margin)+(ny-1)*bool(spaceY)
+		endY = bs[1]+ny*vy+(ny-1)*spaceY+margin
+		xp = bs[0]-margin
+		for x in range(maxX+1):
 			line = DRAWSEGMENT(pcb)
 			line.SetLayer(Edge_Cuts)
 			line.SetWidth(FromMils(10))
-			if x==0: 0
-			if 0<x<(nx+2): 1
-			if x==nx+2: 1
-			xp = (bs[0]+x*vx, (bs[0]-margin, bs[0]+(x-1)*vx, bs[0]+(x-2)*vx+margin)[int(x>0)+int(x==nx+2)])[bool(margin)]
+			xp += (0, ((vx, spaceX)[ds(x, spaceX)], margin)[x in(1, maxX)])[bool(x)]
 			line.SetStart(wxPoint(xp, bs[1]-margin))
-			line.SetEnd(wxPoint(xp, bs[1]+ny*vy+margin))
+			line.SetEnd(wxPoint(xp, endY))
 			pcb.Add(line)
-		for y in range(ny+1+2*bool(margin)):
+		yp = bs[1]-margin
+		for y in range(maxY+1):
 			line = DRAWSEGMENT(pcb)
 			line.SetLayer(Edge_Cuts)
 			line.SetWidth(FromMils(10))
-			yp = (bs[1]+y*vy, (bs[1]-margin, bs[1]+(y-1)*vy, bs[1]+(y-2)*vy+margin)[int(y>0)+int(y==ny+2)])[bool(margin)]
+			yp += (0, ((vy, spaceY)[ds(y, spaceY)], margin)[y in(1, maxY)])[bool(y)]
 			line.SetStart(wxPoint(bs[0]-margin, yp))
-			line.SetEnd(wxPoint(bs[0]+nx*vx+margin, yp))
+			line.SetEnd(wxPoint(endX, yp))
 			pcb.Add(line)
 		pcb.SetAuxOrigin(wxBase)
 		pcb.SetGridOrigin(wxBase)
@@ -163,8 +166,12 @@ class panelizePCB:
 				self.appDropFilename()
 				return
 			ui.logView.insert_end("Reading file:\n\t'%s'\n"% uiFileName)
-			bDone = self.brdPanel(pcb, int(ui.numCols.get_value()), int(ui.numRows.get_value()),
-				margin=ui.margin, SolMsk=FromMils(5), angle=ui.rfAngle.get_value())
+			Margin = ui.Margin.get_value() if ui.Margin.get_checked() else 0
+			SpaceX = ui.SpaceX.get_value() if ui.SpaceX.get_checked() else 0
+			SpaceY = ui.SpaceY.get_value() if ui.SpaceY.get_checked() else 0
+			bDone = self.brdPanel(pcb, int(ui.Cols.get_value()), int(ui.Rows.get_value()),
+				spaceX=SpaceX, spaceY=SpaceY, margin=Margin,
+				SolMsk=FromMils(5), angle=ui.rfAngle.get_value())
 			if bDone:
 				pcb.Save(fileNameSave)
 				ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
@@ -230,12 +237,6 @@ class panelizePCB:
 			self.lastcfg = self.cfg.copy()
 		else:
 			self.lastcfg = None
-		if self.cfg.has_key('Margin'):
-			if self.cfg['Margin'].isdigit():
-				ui.margin = int(self.cfg['Margin'])
-				ui.uiUnits('init')
-			else:
-				self.cfg.pop('Margin')
 		if self.cfg.has_key('Angle'):
 			if self.cfg['Angle'].isdigit():
 				cbSet = int(self.cfg['Angle'])
@@ -243,20 +244,28 @@ class panelizePCB:
 					ui.rfAngle.set_active(cbSet)
 			else:
 				self.cfg.pop('Angle')
-		for keyD in('Cols', 'Rows'):
+		for keyD in('Cols', 'Rows', 'Margin', 'SpaceX', 'SpaceY'):
 			if self.cfg.has_key(keyD):
 				try:
 					value = int(self.cfg[keyD])
-					getattr(ui, 'num'+keyD).set_value(value)
+					getattr(ui, keyD).set_value(value)
+				except ValueError:
+					self.cfg.pop(keyD)
+		for keyD in('CheckMargin', 'CheckSpaceX', 'CheckSpaceY'):
+			if self.cfg.has_key(keyD):
+				try:
+					value = bool(int(self.cfg[keyD]))
+					getattr(ui, keyD[5:]).set_checked(value)
 				except ValueError:
 					self.cfg.pop(keyD)
 
 	def appCfgStore(self):
 		ui = self.ui
-		self.cfg['Cols'] = "%i" % ui.numCols.get_value()
-		self.cfg['Rows'] = "%i" % ui.numRows.get_value()
+		for keyD in('Cols', 'Rows', 'Margin', 'SpaceX', 'SpaceY'):
+			self.cfg[keyD] = "%i" % getattr(ui, keyD).get_value()
+		for keyD in('CheckMargin', 'CheckSpaceX', 'CheckSpaceY'):
+			self.cfg[keyD] = "%i" % getattr(ui, keyD[5:]).get_checked()
 		self.cfg['Angle'] = "%i" % ui.rfAngle.get_active()
-		self.cfg['Margin'] = "%i" % ui.margin
 		cfgDir = pt.dirname(self.cfgFileName)
 		from os import makedirs
 		if not(pt.isdir(cfgDir)):

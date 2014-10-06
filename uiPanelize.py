@@ -153,6 +153,15 @@ class apw:
 		hFixed.put(hButt, posX, posY)
 		return hButt
 
+	def Check(self, txtLabel, hFixed, posX, posY, width, height=None, fontDesc=None):
+		if not height:
+			height=self.Height
+		hCheck = gtk.CheckButton(label=txtLabel, use_underline=False)
+		hLabel=hCheck.child
+		hCheck.set_size_request(width, height)
+		hFixed.put(hCheck, posX, posY)
+		return hCheck
+
 	def TextView(self, hFixed, posX, posY, width, height, bWrap=False, bEditable=True, tabSpace=2, fontDesc=None):
 		hTextView = EasyTextView()
 		hTextView.set_property("editable", bEditable)
@@ -195,6 +204,14 @@ class apw:
 		hDialog.destroy()
 		return fileName
 
+def getTxtPixelWidth(widget, txt, fontDesc=None):
+	pangoLayout = widget.create_pango_layout(txt)
+	if fontDesc:
+		pangoLayout.set_font_description(fontDesc)
+	pangoTxtSpc = pangoLayout.get_pixel_size()[0]
+	del(pangoLayout)
+	return pangoTxtSpc
+
 class radioFrame(gtk.Frame):
 	def __init__(frame, txtLabel, parentFixed, lsVal, x, y, row_height, active=0, wrap=0, fontDesc=None):
 		super(gtk.Frame, frame).__init__(label=txtLabel)
@@ -213,7 +230,7 @@ class radioFrame(gtk.Frame):
 				hRadio = hMainRadio = gtk.RadioButton(group=None, label=radioTxt)
 			if fontDesc:
 				hRadio.modify_font(fontDesc)
-			radioW = frame.getTxtPixelWidth(hRadio, radioTxt, fontDesc=fontDesc)+20
+			radioW = getTxtPixelWidth(hRadio, radioTxt, fontDesc=fontDesc)+20
 			if wrap:
 				maxColW = max(maxColW, radioW)
 				if not(idx%wrap) or(idx==items-1) and(items%wrap):
@@ -239,16 +256,6 @@ class radioFrame(gtk.Frame):
 			frame.value = None
 			return
 		frame.set_active(active)
-		
-		#frame.value = lsVal[active][1]
-
-	def getTxtPixelWidth(frame, widget, txt, fontDesc=None):
-		pangoLayout = widget.create_pango_layout(txt)
-		if fontDesc:
-			pangoLayout.set_font_description(fontDesc)
-		pangoTxtSpc = pangoLayout.get_pixel_size()[0]
-		del(pangoLayout)
-		return pangoTxtSpc
 
 	def callBack(frame, radio, value):
 		if radio.get_active():
@@ -258,6 +265,60 @@ class radioFrame(gtk.Frame):
 	get_active = lambda frame: frame.active
 	set_active = lambda frame, active: frame.group[active].set_active(True) 
 	get_value = lambda frame: frame.value
+
+class rasterMetricMils(gtk.Fixed):
+	def __init__(fixed, txtLabel, parentFixed, apw, x, y, fontDesc=None):
+		super(gtk.Fixed, fixed).__init__()
+		fixed.Check = apw.Check(txtLabel, fixed, 0, 0, 40)
+		cw = getTxtPixelWidth(fixed.Check, txtLabel, fontDesc=fontDesc)+15
+		fixed.Check.set_size_request(cw, apw.Height)
+		fixed.MM = apw.Num((0, 0, 500, 1), fixed, cw, 0, 70, partDigits=4)
+		apw.Label("mm=", fixed, cw+72, 0, 23)
+		fixed.Mils = apw.Num((0, 0, 20000, 10), fixed, cw+95, 0, 70, partDigits=3)
+		apw.Label("mils", fixed, cw+165, 0, 20)
+		parentFixed.put(fixed, x, y)
+		fixed.MM.connect("value-changed", fixed.units)
+		fixed.Mils.connect("value-changed", fixed.units)
+		fixed.Check.connect("toggled", fixed.toggled)
+		fixed.set_checked(False)
+		fixed.set_value(0)
+
+	def units(fixed, intOrWidget):
+		from pcbnew import FromMils, FromMM, ToMils, ToMM
+		if intOrWidget==fixed.MM:
+			fixed.value = FromMM(intOrWidget.get_value())
+			testVal =  FromMils(fixed.Mils.get_value())
+			if fixed.value != testVal:
+				setV = ToMils(fixed.value)
+				fixed.Mils.set_value(setV)
+				if __name__ == "__main__":
+					fixed.logView.insert_end("%gmils\n" % setV)
+		elif intOrWidget==fixed.Mils:
+			fixed.value = FromMils(intOrWidget.get_value())
+			testVal =  FromMM(fixed.MM.get_value())
+			if fixed.value != testVal:
+				setV = ToMM(fixed.value)
+				fixed.MM.set_value(setV)
+				if __name__ == "__main__":
+					fixed.logView.insert_end("%gmm\n" % setV)
+		elif type(intOrWidget)==int:
+			fixed.value = intOrWidget
+			fixed.MM.set_value(ToMM(intOrWidget))
+			fixed.Mils.set_value(ToMils(intOrWidget))
+
+	def toggled(fixed, widget):
+		bCheck = widget.get_active()
+		fixed.Mils.set_sensitive(bCheck)
+		fixed.MM.set_sensitive(bCheck)
+
+	def set_checked(fixed, bCheck):
+		fixed.Check.set_active(bCheck)
+		fixed.Mils.set_sensitive(bCheck)
+		fixed.MM.set_sensitive(bCheck)
+
+	get_checked = lambda fixed: fixed.Check.get_active()
+	set_value = lambda fixed, value: fixed.units(value)
+	get_value = lambda fixed: fixed.value
 
 class panelizeUI:
 	def __init__(ui):
@@ -275,21 +336,9 @@ class panelizeUI:
 				lambda w: ui.logView.insert_end("Angle: %0.1f°\n" % (ui.rfAngle.get_value()/10)))
 			ui.logView.insert_end("User Interface Test...\nSo long… So long… So long… So long… long… Sooooo long…\n")
 			ui.uiEnter()
-			gtk.main()
 
-	def uiEnter(ui):
-		ui.cLoop = 0
-		if not(hasattr(ui, 'margin')):
-			ui.margin = 0
-		ui.numMarginMils.connect("value-changed", ui.uiUnits)
-		ui.numMarginMM.connect("value-changed", ui.uiUnits)
-		from gobject import timeout_add as addTick
-		ui.tickHnd = addTick(500, ui.uiTick)
-
-	def uiExit(ui):
-		from gobject import source_remove as unWatch
-		unWatch(ui.tickHnd)
-		gtk.main_quit()
+	uiEnter = lambda ui: gtk.main()
+	uiExit = lambda ui: gtk.main_quit()
 
 	def uiInit(ui):
 		from gobject import TYPE_STRING as goStr, TYPE_INT as goInt
@@ -298,7 +347,7 @@ class panelizeUI:
 		cd(ui.callDir)
 		ui.title = "pcbnew py module based Panelizator. BZR>5160"
 		ui.mainWindow = gtk.Window(gtk.WINDOW_TOPLEVEL)
-		ui.wdhMain, ui.hgtMain = (570, 300)
+		ui.wdhMain, ui.hgtMain = (580, 300)
 		ui.mainWindow.set_geometry_hints(min_width=ui.wdhMain, min_height=ui.hgtMain)
 		ui.mainWindow.set_size_request(ui.wdhMain, ui.hgtMain)
 		ui.mainWindow.set_title(ui.title)
@@ -322,11 +371,9 @@ class panelizeUI:
 				mainFrame, 0, 0, 0, xalign=0., selectable=True)
 		ui.buttonFileName = ui.apw.Butt(None, mainFrame, 0, 0, 30, stockID=gtk.STOCK_OPEN)
 
-		ui.labMargin = apw.Label("Margin:", mainFrame, 0, 0, 40)
-		ui.numMarginMM = apw.Num((0, 0, 500, 1), mainFrame, 0, 0, 70, partDigits=4)
-		ui.labMarginMM = apw.Label("mm=", mainFrame, 0, 0, 23)
-		ui.numMarginMils = apw.Num((0, 0, 20000, 10), mainFrame, 0, 0, 70, partDigits=3)
-		ui.labMarginMils = apw.Label("mils", mainFrame, 0, 0, 20)
+		ui.Margin = rasterMetricMils("Margin:", mainFrame, apw, 0, 0)
+		ui.SpaceX = rasterMetricMils("SpaceX:", mainFrame, apw, 0, 0)
+		ui.SpaceY = rasterMetricMils("SpaceY:", mainFrame, apw, 0, 0)
 
 		ui.buttonProceed = ui.apw.Butt("Proceed", mainFrame, 0, 0, 80, stockID=gtk.STOCK_MEDIA_PLAY)
 
@@ -337,13 +384,13 @@ class panelizeUI:
 		mainFrame.put(ui.imageLogo, 0, 0)
 
 		ui.labCols = apw.Label("Columns:", mainFrame, 0, 0, 45)
-		ui.numCols = apw.Num((1, 1, 999, 1), mainFrame, 0, 0, 37)
+		ui.Cols = apw.Num((1, 1, 999, 1), mainFrame, 0, 0, 37)
 
 		ui.buttonClear = ui.apw.Butt("Clear log view", mainFrame, 0,  0, 80)
 		ui.buttonClear.connect("clicked", lambda xargs: ui.logView.clear_text())
 
 		ui.labRows = apw.Label("Rows:", mainFrame, 0, 0, 30)
-		ui.numRows = apw.Num((1, 1, 999, 1), mainFrame, 0, 0, 37)
+		ui.Rows = apw.Num((1, 1, 999, 1), mainFrame, 0, 0, 37)
 
 		ui.buttonExit = ui.apw.Butt("Exit (Ctrl+Q)", mainFrame, 0, 0, 80)
 		ui.buttonExit.add_accelerator("clicked", accGroup, ord('Q'),
@@ -362,8 +409,10 @@ class panelizeUI:
 				return True
 			stdH = ui.apw.Height
 			ui.lastWinSize = w, h
-			ui.logView.get_parent().set_size_request(w-20, h-110)
-			#ui.logView.get_parent().set_size_request(w-20, h-250)
+			if __name__ == "__main__":
+				ui.logView.get_parent().set_size_request(w-20, h-200)
+			else:
+				ui.logView.get_parent().set_size_request(w-20, h-110)
 			#y1 = h-130
 			y1 = h-240
 			y2 = h-100
@@ -373,48 +422,22 @@ class panelizeUI:
 			ui.mainFrame.move(ui.buttonFileName, w-130, y2)
 			ui.mainFrame.move(ui.buttonProceed, w-95, y2)
 			ui.mainFrame.move(ui.imageLogo, 0, h-57)
-			x1, x2, y3 = 90, 435, h-70
-			ui.mainFrame.move(ui.labMargin, x1-40, y3)
-			ui.mainFrame.move(ui.numMarginMM, x1, y3)
-			ui.mainFrame.move(ui.labMarginMM, x1+72, y3)
-			ui.mainFrame.move(ui.numMarginMils, x1+95, y3)
-			ui.mainFrame.move(ui.labMarginMils, x1+165, y3)
-			ui.mainFrame.move(ui.rfAngle, 280, y3-3)
+			x1, x2, y3 = 50, 445, h-70
+			ui.mainFrame.move(ui.Margin, x1, h-80)
+			ui.mainFrame.move(ui.SpaceX, x1, h-55)
+			ui.mainFrame.move(ui.SpaceY, x1, h-30)
+			ui.mainFrame.move(ui.rfAngle, 290, y3-3)
 			ui.mainFrame.move(ui.labCols, x2-47, y3)
-			ui.mainFrame.move(ui.numCols,  x2, y3)
+			ui.mainFrame.move(ui.Cols,  x2, y3)
 			ui.mainFrame.move(ui.buttonClear, w-95, y3)
 			y4 = h-40
 			ui.mainFrame.move(ui.labRows, x2-32, y4)
-			ui.mainFrame.move(ui.numRows, x2, y4)
+			ui.mainFrame.move(ui.Rows, x2, y4)
 			ui.mainFrame.move(ui.buttonExit, w-95, y4)
 			return True
 
 	def uiTick(ui):
-		if ui.cLoop>0:
-			ui.cLoop -= 1
 		return True
-
-	def uiUnits(ui, widget):
-		from pcbnew import FromMils, FromMM, ToMils, ToMM
-		if widget==ui.numMarginMils:
-			if not(ui.cLoop):
-				ui.margin = FromMils(widget.get_value())
-				setV = ToMM(ui.margin)
-				ui.numMarginMM.set_value(setV)
-				ui.cLoop += 1
-				if __name__ == "__main__":
-					ui.logView.insert_end("%gmm\n" % setV)
-		elif widget==ui.numMarginMM:
-			if not(ui.cLoop):
-				ui.margin = FromMM(widget.get_value())
-				setV = ToMils(ui.margin)
-				ui.numMarginMils.set_value(setV)
-				ui.cLoop += 1
-				if __name__ == "__main__":
-					ui.logView.insert_end("%gmils\n" % setV)
-		elif widget=='init':
-				ui.numMarginMM.set_value(ToMM(ui.margin))
-				ui.numMarginMils.set_value(ToMils(ui.margin))
 
 # Entry point
 if __name__ == "__main__":
