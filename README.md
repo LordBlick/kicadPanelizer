@@ -48,7 +48,7 @@ Unix based OS user can set execute privileges to execute as any other shell scri
 
 To run it it's nessesary to install:
 - [Python interpreter] in version 2 (On today newests is 2.7.8). Don't miss with version 3 (On today newests is 3.4.1).
-- [KiCAD] compiled with allowed python scripting. Minimum BZR version is 5160.
+- [KiCAD] compiled with allowed python scripting. Minimum BZR version is 5161.
 - [GTK Libraries].
 [Python interpreter]: https://www.python.org/downloads/
 [KiCAD]: http://kicad-pcb.org/
