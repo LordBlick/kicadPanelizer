@@ -345,7 +345,7 @@ class panelizeUI:
 		apw =  ui.apw
 		ui.callDir = pt.dirname(pt.abspath(__file__))
 		cd(ui.callDir)
-		ui.title = "pcbnew py module based Panelizator. BZR>5160"
+		ui.title = "pcbnew py module based Panelizator v.0.7. For BZR>5161"
 		ui.mainWindow = gtk.Window(gtk.WINDOW_TOPLEVEL)
 		ui.wdhMain, ui.hgtMain = (580, 300)
 		ui.mainWindow.set_geometry_hints(min_width=ui.wdhMain, min_height=ui.hgtMain)
