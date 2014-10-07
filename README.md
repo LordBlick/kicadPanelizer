@@ -30,7 +30,8 @@ kicadPanelizer is a program for fast automatic PCB panelization proces. That's w
 Some screenshoot:
 
 <!-- ![screenshoot](https://cloud.githubusercontent.com/assets/5176054/4505567/3bb70a44-4af7-11e4-91a8-0360eab9ceae.png) -->
-![screenshoot](https://cloud.githubusercontent.com/assets/5176054/4526874/25ddc384-4d63-11e4-965a-af05e8820d4a.png)
+<!-- ![screenshoot](https://cloud.githubusercontent.com/assets/5176054/4526874/25ddc384-4d63-11e4-965a-af05e8820d4a.png) -->
+![screenshoot](https://cloud.githubusercontent.com/assets/5176054/4541215/b4664a38-4e10-11e4-8062-c265e0ce5612.png)
 
 This one program is designed as a maximum to facilitate as much as possible.
 
