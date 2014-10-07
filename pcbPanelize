@@ -2,8 +2,10 @@
 # -*- encoding: utf-8 -*-
 # -*- coding: utf-8 -*-
 
-from pcbnew import LoadBoard, DRAWSEGMENT, DIMENSION, Edge_Cuts, wxPoint, \
-	FromMils, GetKicadConfigPath
+#All greetings may go to LordBlick on gmail… ;)
+
+from pcbnew import LoadBoard, DRAWSEGMENT as DS, DIMENSION as DIMN, \
+	Edge_Cuts as Cutout, wxPoint as wxPt, FromMils, GetKicadConfigPath as cfgPath
 from os import path as pt
 class panelizePCB:
 	def __init__(self):
@@ -29,8 +31,8 @@ class panelizePCB:
 	def brdBounds(self, pcb):
 		outPoints = []
 		for Draw in pcb.GetDrawings():
-			if type(Draw) is DRAWSEGMENT and(Draw.GetShapeStr()=='Line')\
-				and(Draw.GetLayer()==Edge_Cuts):
+			if type(Draw) is DS and(Draw.GetShapeStr()=='Line')\
+				and(Draw.GetLayer()==Cutout):
 					Draw.SetWidth(FromMils(10))
 					for pnt in (Draw.GetStart(), Draw.GetEnd()):
 						if pnt not in outPoints:
@@ -48,7 +50,7 @@ class panelizePCB:
 			Item.Rotate(wxCenter, angle)
 
 	def brdPosite(self, ptFrom, ptTo):
-		vect = wxPoint(ptTo[0]-ptFrom[0], ptTo[1]-ptFrom[1])
+		vect = wxPt(ptTo[0]-ptFrom[0], ptTo[1]-ptFrom[1])
 		for Item in self.lsItems:
 			Item.Move(vect)
 
@@ -67,9 +69,9 @@ class panelizePCB:
 				self.lsItems.append(Zone)
 
 	def brdDrawInEdge(self, Item, orginBounds):
-		if type(Item) is not DRAWSEGMENT:
+		if type(Item) is not DS:
 			return False
-		if Item.GetLayer()!=Edge_Cuts:
+		if Item.GetLayer()!=Cutout:
 			return False
 		(xa, ya), (xb, yb) = orginBounds
 		if Item.GetShapeStr()=='Line':
@@ -92,11 +94,11 @@ class panelizePCB:
 					Pad.SetLocalSolderMaskMargin(0)
 		bd = self.brdBounds(pcb)
 		self.brdItemize(pcb)
-		wxCenter = wxPoint((bd[0][0]+bd[1][0])/2, (bd[0][1]+bd[1][1])/2)
+		wxCenter = wxPt((bd[0][0]+bd[1][0])/2, (bd[0][1]+bd[1][1])/2)
 		if angle:
 			self.brdRotate( wxCenter, angle)
 		bs = FromMils(500), FromMils(500)
-		wxBase = wxPoint(*bs)
+		wxBase = wxPt(*bs)
 		bd = self.brdBounds(pcb)
 		self.brdPosite(bd[0], wxBase)
 		bd = self.brdBounds(pcb)
@@ -105,11 +107,11 @@ class panelizePCB:
 			for y in range(ny):
 				if x==0 and(y==0):
 					continue # Skip orgin
-				vect = wxPoint(x*(vx+spaceX), y*(vy+spaceY))
+				vect = wxPt(x*(vx+spaceX), y*(vy+spaceY))
 				for Item in self.lsItems:
 					if Item.remove:
 						continue
-					elif self.brdDrawInEdge(Item, bd) or(type(Item) is DIMENSION):
+					elif self.brdDrawInEdge(Item, bd) or(type(Item) is DIMN):
 						Item.remove = True
 						continue # do not clone dimmensions or edge lines, a last one will be exchanged with generated grid
 					newItem = Item.Duplicate()
@@ -123,12 +125,12 @@ class panelizePCB:
 		endY = bs[1]+ny*vy+(ny-1)*spaceY+margin
 		xp = bs[0]-margin
 		for nx in range(max_nx+1):
-			line = DRAWSEGMENT(pcb)
-			line.SetLayer(Edge_Cuts)
+			line = DS(pcb)
+			line.SetLayer(Cutout)
 			line.SetWidth(FromMils(10))
 			xp += dn(max_nx, nx, vx, spaceX)
-			line.SetStart(wxPoint(xp, bs[1]-margin))
-			line.SetEnd(wxPoint(xp, endY))
+			line.SetStart(wxPt(xp, bs[1]-margin))
+			line.SetEnd(wxPt(xp, endY))
 			if debug:
 				print("|:(%i, %i)\n  (%i, %i)" % (xp, bs[1]-margin, xp, endY))
 			pcb.Add(line)
@@ -136,12 +138,12 @@ class panelizePCB:
 			print('')
 		yp = bs[1]-margin
 		for ny in range(max_ny+1):
-			line = DRAWSEGMENT(pcb)
-			line.SetLayer(Edge_Cuts)
+			line = DS(pcb)
+			line.SetLayer(Cutout)
 			line.SetWidth(FromMils(10))
 			yp += dn(max_ny, ny, vy, spaceY)
-			line.SetStart(wxPoint(bs[0]-margin, yp))
-			line.SetEnd(wxPoint(endX, yp))
+			line.SetStart(wxPt(bs[0]-margin, yp))
+			line.SetEnd(wxPt(endX, yp))
 			if debug:
 				print("-:(%i, %i)\n  (%i, %i)" % (bs[0]-margin, yp, endX, yp))
 			pcb.Add(line)
@@ -238,7 +240,7 @@ class panelizePCB:
 	def appCfgLoad(self):
 		ui = self.ui
 		self.cfg = {}
-		self.cfgFileName = "%s/%s.conf" % (GetKicadConfigPath(), pt.basename(pt.abspath(__file__)))
+		self.cfgFileName = pt.normpath("%s/%s.conf" % (cfgPath(), pt.basename(pt.abspath(__file__))))
 		print("cfg:%s" % self.cfgFileName.replace(pt.expanduser('~'), '~'))
 		if pt.isfile(self.cfgFileName):
 			hFileCfg = open(self.cfgFileName, 'r')
