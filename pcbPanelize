@@ -82,7 +82,7 @@ class panelizePCB:
 		# Other Shapes in Future
 		return False
 
-	def brdPanel(self, pcb, nx, ny, spaceX=0, spaceY=0, margin=0, SolMsk=0, angle=0):
+	def brdPanel(self, pcb, nx, ny, spaceX=0, spaceY=0, margin=0, SolMsk=0, angle=0, debug=False):
 		if nx<1 or(ny<1):
 			return False
 		if SolMsk:
@@ -114,29 +114,38 @@ class panelizePCB:
 					newItem = Item.Duplicate()
 					pcb.Add(newItem)
 					newItem.Move(vect)
-		ds = lambda n, space: (((n+1)%2)^bool(margin))*bool(space)
-		maxX = nx+2*bool(margin)+(nx-1)*bool(spaceX)
+		dn = lambda max_n, n, vn, space:\
+			(0, ((vn, space)[((n+bool(margin)+bool(space))%2)*bool(space)], margin)[(n in(1, max_n))*bool(margin)])[bool(n)]
+		max_nx = nx+2*bool(margin)+(nx-1)*bool(spaceX)
 		endX = bs[0]+nx*vx+(nx-1)*spaceX+margin
-		maxY = ny+2*bool(margin)+(ny-1)*bool(spaceY)
+		max_ny = ny+2*bool(margin)+(ny-1)*bool(spaceY)
 		endY = bs[1]+ny*vy+(ny-1)*spaceY+margin
 		xp = bs[0]-margin
-		for x in range(maxX+1):
+		for nx in range(max_nx+1):
 			line = DRAWSEGMENT(pcb)
 			line.SetLayer(Edge_Cuts)
 			line.SetWidth(FromMils(10))
-			xp += (0, ((vx, spaceX)[ds(x, spaceX)], margin)[x in(1, maxX)])[bool(x)]
+			xp += dn(max_nx, nx, vx, spaceX)
 			line.SetStart(wxPoint(xp, bs[1]-margin))
 			line.SetEnd(wxPoint(xp, endY))
+			if debug:
+				print("|:(%i, %i)\n  (%i, %i)" % (xp, bs[1]-margin, xp, endY))
 			pcb.Add(line)
+		if debug:
+			print('')
 		yp = bs[1]-margin
-		for y in range(maxY+1):
+		for ny in range(max_ny+1):
 			line = DRAWSEGMENT(pcb)
 			line.SetLayer(Edge_Cuts)
 			line.SetWidth(FromMils(10))
-			yp += (0, ((vy, spaceY)[ds(y, spaceY)], margin)[y in(1, maxY)])[bool(y)]
+			yp += dn(max_ny, ny, vy, spaceY)
 			line.SetStart(wxPoint(bs[0]-margin, yp))
 			line.SetEnd(wxPoint(endX, yp))
+			if debug:
+				print("-:(%i, %i)\n  (%i, %i)" % (bs[0]-margin, yp, endX, yp))
 			pcb.Add(line)
+		if debug:
+			print('')
 		pcb.SetAuxOrigin(wxBase)
 		pcb.SetGridOrigin(wxBase)
 		return True
@@ -171,7 +180,7 @@ class panelizePCB:
 			SpaceY = ui.SpaceY.get_value() if ui.SpaceY.get_checked() else 0
 			bDone = self.brdPanel(pcb, int(ui.Cols.get_value()), int(ui.Rows.get_value()),
 				spaceX=SpaceX, spaceY=SpaceY, margin=Margin,
-				SolMsk=FromMils(5), angle=ui.rfAngle.get_value())
+				SolMsk=FromMils(4), angle=ui.rfAngle.get_value())
 			if bDone:
 				pcb.Save(fileNameSave)
 				ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
