@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 from pcbnew import LoadBoard, DRAWSEGMENT, DIMENSION, Edge_Cuts, wxPoint, \
-	FromMils, Cast_to_BOARD_ITEM
+	FromMils, GetKicadConfigPath
 from os import path as pt
 class panelizePCB:
 	def __init__(self):
@@ -108,10 +108,10 @@ class panelizePCB:
 				vect = wxPoint(x*(vx+spaceX), y*(vy+spaceY))
 				for Item in self.lsItems:
 					if Item.remove:
-						continue # do not clone edge lines, it will be exchanged with generated grid
+						continue
 					elif self.brdDrawInEdge(Item, bd) or(type(Item) is DIMENSION):
 						Item.remove = True
-						continue # do not clone edge lines, it will be exchanged with generated grid
+						continue # do not clone dimmensions or edge lines, a last one will be exchanged with generated grid
 					newItem = Item.Duplicate()
 					pcb.Add(newItem)
 					newItem.Move(vect)
@@ -238,7 +238,7 @@ class panelizePCB:
 	def appCfgLoad(self):
 		ui = self.ui
 		self.cfg = {}
-		self.cfgFileName = "%s/%s.conf" % (pt.expanduser('~/.config/kicad'), pt.basename(pt.abspath(__file__)))
+		self.cfgFileName = "%s/%s.conf" % (GetKicadConfigPath(), pt.basename(pt.abspath(__file__)))
 		print("cfg:%s" % self.cfgFileName.replace(pt.expanduser('~'), '~'))
 		if pt.isfile(self.cfgFileName):
 			hFileCfg = open(self.cfgFileName, 'r')
