@@ -109,7 +109,7 @@ class panelizePCB:
 				for Item in self.lsItems:
 					if Item.remove:
 						continue # do not clone edge lines, it will be exchanged with generated grid
-					elif self.brdDrawInEdge(Item, bd) or(type(Draw) is DIMENSION):
+					elif self.brdDrawInEdge(Item, bd) or(type(Item) is DIMENSION):
 						Item.remove = True
 						continue # do not clone edge lines, it will be exchanged with generated grid
 					newItem = Item.Duplicate()
