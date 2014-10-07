@@ -59,4 +59,4 @@ TO DO:
 - wxWidgets version, suitable to other KiCAD programs.
 - On today it recognized only straight lines of edge cutout layer.
 - Last used files list.
-- Own net names for every clone (tracks, vias and pads).
+- Own net names for every clone which has net atributes(zones, tracks, vias and pads).
