@@ -35,8 +35,6 @@ class panelizePCB:
 					for pnt in (Draw.GetStart(), Draw.GetEnd()):
 						if pnt not in outPoints:
 							outPoints.append(pnt)
-			elif type(Draw) is DIMENSION:
-				pcb.Delete(Draw)
 		x_min, y_min = x_max, y_max = outPoints[0]
 		for x, y in outPoints:
 			x_min = min(x_min, x)
@@ -59,11 +57,13 @@ class panelizePCB:
 		for ItemStr in ('Drawings', 'Tracks', 'Modules'):
 			if ItemStr:
 				for Item in (getattr(pcb, 'Get'+ItemStr)()):
+					Item.remove = False
 					self.lsItems.append(Item)
 		nZones = pcb.GetAreaCount()
 		if nZones:
 			for idx in range(nZones):
 				Zone = pcb.GetArea(idx)
+				Zone.remove = False
 				self.lsItems.append(Zone)
 
 	def brdDrawInEdge(self, Item, orginBounds):
@@ -107,10 +107,11 @@ class panelizePCB:
 					continue # Skip orgin
 				vect = wxPoint(x*(vx+spaceX), y*(vy+spaceY))
 				for Item in self.lsItems:
-					if self.brdDrawInEdge(Item, bd):
-							self.lsItems.pop(self.lsItems.index(Item))
-							pcb.Delete(Item)
-							continue # do not clone edge lines, it will be exchanged with generated grid
+					if Item.remove:
+						continue # do not clone edge lines, it will be exchanged with generated grid
+					elif self.brdDrawInEdge(Item, bd) or(type(Draw) is DIMENSION):
+						Item.remove = True
+						continue # do not clone edge lines, it will be exchanged with generated grid
 					newItem = Item.Duplicate()
 					pcb.Add(newItem)
 					newItem.Move(vect)
@@ -146,6 +147,13 @@ class panelizePCB:
 			pcb.Add(line)
 		if debug:
 			print('')
+		nItems = len(self.lsItems)
+		for n in range(nItems):
+			idx = nItems-1-n
+			Item = self.lsItems[idx]
+			if Item.remove:
+				self.lsItems.pop(idx)
+				pcb.Delete(Item)
 		pcb.SetAuxOrigin(wxBase)
 		pcb.SetGridOrigin(wxBase)
 		return True
