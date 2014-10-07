@@ -274,7 +274,7 @@ class rasterMetricMils(gtk.Fixed):
 		fixed.Check.set_size_request(cw, apw.Height)
 		fixed.MM = apw.Num((0, 0, 500, 1), fixed, cw, 0, 70, partDigits=4)
 		apw.Label("mm=", fixed, cw+72, 0, 23)
-		fixed.Mils = apw.Num((0, 0, 20000, 10), fixed, cw+95, 0, 70, partDigits=3)
+		fixed.Mils = apw.Num((0, 0, 19685.039, 10), fixed, cw+95, 0, 70, partDigits=3)
 		apw.Label("mils", fixed, cw+165, 0, 20)
 		parentFixed.put(fixed, x, y)
 		fixed.MM.connect("value-changed", fixed.units)
@@ -423,7 +423,7 @@ class panelizeUI:
 			ui.mainFrame.move(ui.buttonFileName, w-130, y2)
 			ui.mainFrame.move(ui.buttonProceed, w-95, y2)
 			ui.mainFrame.move(ui.imageLogo, 0, h-57)
-			x1, x2, y3 = 50, 445, h-70
+			x1, x2, y3 = 45, 445, h-70
 			ui.mainFrame.move(ui.Margin, x1, h-80)
 			ui.mainFrame.move(ui.SpaceX, x1, h-55)
 			ui.mainFrame.move(ui.SpaceY, x1, h-30)
