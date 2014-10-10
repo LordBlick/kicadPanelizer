@@ -94,7 +94,7 @@ class panelizePCB:
 
 	def brdPanel(self, pcb, nx, ny, spaceX=0, spaceY=0, margin=0, SolMsk=0, angle=0, debug=False):
 		if nx<1 or(ny<1):
-			raise ValueError, "Collumns(%i) or Rows(%i) cannot be less than 1…" % (nx, ny)
+			raise ValueError, "Columns(%i) or Rows(%i) cannot be less than 1…" % (nx, ny)
 		if SolMsk:
 			for Module in pcb.GetModules():
 				Module.SetLocalSolderMaskMargin(SolMsk)
