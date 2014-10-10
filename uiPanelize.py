@@ -334,7 +334,7 @@ class panelizeUI:
 				lambda w: ui.logView.insert_end("Angle: %0.1f°\n" % (ui.rfAngle.get_value()/10)))
 			ui.logView.insert_end("User Interface Test...\nSo long… So long… So long… So long… long… Sooooo long…\n")
 			for kAttr in('Margin', 'SpaceX', 'SpaceY'):
-				setattr(getattr(ui,kAttr), 'logView',ui.logView)
+				setattr(getattr(ui, kAttr), 'logView', ui.logView)
 			ui.uiEnter()
 
 	uiEnter = lambda ui: gtk.main()
