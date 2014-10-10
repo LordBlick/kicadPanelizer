@@ -217,7 +217,6 @@ class radioFrame(gtk.Frame):
 		super(gtk.Frame, frame).__init__(label=txtLabel)
 		items = len(lsVal)
 		frame.fixed = gtk.Fixed()
-		frame.lsRet = map(lambda row: row[1], lsVal)
 		if type(wrap) is not int or(wrap<0):
 			wrap = 0
 		frameW = 5
@@ -322,7 +321,6 @@ class rasterMetricMils(gtk.Fixed):
 
 class panelizeUI:
 	def __init__(ui):
-		from sys import path as ptSys
 		ui.apw = apw()
 		ui.gtk = gtk
 		ui.fontDesc = pango.FontDescription('Univers,Sans Condensed 8')
@@ -335,6 +333,8 @@ class panelizeUI:
 			ui.buttonProceed.connect("clicked",
 				lambda w: ui.logView.insert_end("Angle: %0.1f°\n" % (ui.rfAngle.get_value()/10)))
 			ui.logView.insert_end("User Interface Test...\nSo long… So long… So long… So long… long… Sooooo long…\n")
+			for kAttr in('Margin', 'SpaceX', 'SpaceY'):
+				setattr(getattr(ui,kAttr), 'logView',ui.logView)
 			ui.uiEnter()
 
 	uiEnter = lambda ui: gtk.main()
@@ -344,9 +344,9 @@ class panelizeUI:
 		from gobject import TYPE_STRING as goStr, TYPE_INT as goInt
 		apw =  ui.apw
 		ui.callDir = pt.dirname(pt.abspath(__file__))
-		version =.85
 		cd(ui.callDir)
-		ui.title = "PCBnew python module based Panelizator v.%0.2f. For BZR>5161" % version
+		ui.version = .86
+		ui.title = "PCBnew python module based Panelizator v.%0.2f. For BZR>5161" % ui.version
 		ui.mainWindow = gtk.Window(gtk.WINDOW_TOPLEVEL)
 		ui.wdhMain, ui.hgtMain = (580, 300)
 		ui.mainWindow.set_geometry_hints(min_width=ui.wdhMain, min_height=ui.hgtMain)

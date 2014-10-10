@@ -28,6 +28,10 @@ class panelizePCB:
 		ui.buttonProceed.connect("clicked", lambda xargs: self.appPanelize())
 		ui.buttonExit.connect("clicked", lambda xargs: self.Exit())
 
+	def errReport(self, txt):
+		ui = self.ui
+		ui.logView.insert_end(("Script Version: v.%0.2f. Error report:\n"+txt) % ui.version)
+
 	def brdBounds(self, pcb):
 		outPoints = []
 		for Draw in pcb.GetDrawings():
@@ -56,15 +60,19 @@ class panelizePCB:
 
 	def brdItemize(self, pcb):
 		self.lsItems = []
+		nullType = type(None)
 		for ItemStr in ('Drawings', 'Tracks', 'Modules'):
-			if ItemStr:
-				for Item in (getattr(pcb, 'Get'+ItemStr)()):
-					Item.remove = False
-					self.lsItems.append(Item)
+			for idx, Item in enumerate(getattr(pcb, 'Get'+ItemStr)()):
+				if type(Item)==nullType:
+					raise TypeError, "Null Object Error#%i, expected %s Type…" % (idx+1, ItemStr[:-1])
+				Item.remove = False
+				self.lsItems.append(Item)
 		nZones = pcb.GetAreaCount()
 		if nZones:
 			for idx in range(nZones):
 				Zone = pcb.GetArea(idx)
+				if type(Zone)==nullType:
+					raise TypeError, "Null Object Error#%i, expected Zone/Area Type…" % (idx+1,)
 				Zone.remove = False
 				self.lsItems.append(Zone)
 
@@ -86,7 +94,7 @@ class panelizePCB:
 
 	def brdPanel(self, pcb, nx, ny, spaceX=0, spaceY=0, margin=0, SolMsk=0, angle=0, debug=False):
 		if nx<1 or(ny<1):
-			return False
+			raise ValueError, "Collumns(%i) or Rows(%i) cannot be less than 1…" % (nx, ny)
 		if SolMsk:
 			for Module in pcb.GetModules():
 				Module.SetLocalSolderMaskMargin(SolMsk)
@@ -158,7 +166,7 @@ class panelizePCB:
 				pcb.Delete(Item)
 		pcb.SetAuxOrigin(wxBase)
 		pcb.SetGridOrigin(wxBase)
-		return True
+		return
 
 	def appUpdateFilename(self, bUpEmptyTxt=True):
 		ui = self.ui
@@ -181,23 +189,26 @@ class panelizePCB:
 			try:
 				pcb = LoadBoard(fileNamePCB)
 			except Exception as err:
-				ui.logView.insert_end("Unrecognized data found. Checkout that file:\n\t'%s'\nError message:\n\t%s\n"% (uiFileName, err))
+				self.errReport(("Unrecognized data found. Checkout that file:\n"+\
+					"\t'%s'\nError message:\n\t%s\n") % (uiFileName, err))
 				self.appDropFilename()
 				return
 			ui.logView.insert_end("Reading file:\n\t'%s'\n"% uiFileName)
 			Margin = ui.Margin.get_value() if ui.Margin.get_checked() else 0
 			SpaceX = ui.SpaceX.get_value() if ui.SpaceX.get_checked() else 0
 			SpaceY = ui.SpaceY.get_value() if ui.SpaceY.get_checked() else 0
-			bDone = self.brdPanel(pcb, int(ui.Cols.get_value()), int(ui.Rows.get_value()),
-				spaceX=SpaceX, spaceY=SpaceY, margin=Margin,
-				SolMsk=FromMils(4), angle=ui.rfAngle.get_value())
-			if bDone:
-				pcb.Save(fileNameSave)
-				ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
-			else:
-				ui.logView.insert_end("Something went wrong. Contact developers.\n"+\
-					"Provide info about current configuration and processed file:\n\t'%s'\n"% uiFileName)
+			try:
+				self.brdPanel(pcb, int(ui.Cols.get_value()), int(ui.Rows.get_value()),
+					spaceX=SpaceX, spaceY=SpaceY, margin=Margin,
+					SolMsk=FromMils(4), angle=ui.rfAngle.get_value())
+			except Exception as err:
+				self.errReport("Something went wrong. Contact developers.\n"+\
+					"Provide info about current configuration and processed file:\n"+\
+					"\t'%s'\nError message:\n\t%s\n" % (uiFileName, err))
 				self.appDropFilename()
+				return
+			pcb.Save(fileNameSave)
+			ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
 
 	def appFileName(self):
 		ui = self.ui
