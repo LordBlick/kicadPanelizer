@@ -66,5 +66,5 @@ TO DO:
 - Direct output to Gerber(already supported) and drill(I'm not sure yet that drill is supported in KiCAD pcbnew scripting) files.
 - Own net names for every clone which has net attributes(zones, tracks, vias and pads).
 - Add some edge cutout visualization.
-- Add support for complement 180° rotation with cutout by generated on the fly NPTH oval or micro-drill pads with preselected tool diameter. This has the advantage that you do not need to create an additional program for CNC milling machines, because everything is contained in the drilling file.
+- Add support for complement 180° rotatated „L”-like boards with cutout by generated on the fly NPTH oval or micro-drill pads with preselected tool diameter. This has the advantage that you do not need to create an additional program for CNC milling machines, because everything is contained in the drilling file.
 - Recognized more complicated lines of edge cutout layer.
