@@ -4,7 +4,7 @@ description: KiCAD PCB panelization helper
 author: LordBlick
 tags: KiCAD, PCB, EDA, electronics
 created:  2014.10.03
-modified: 2014.10.03
+modified: 2015.09.09
 
 ---
 
@@ -58,7 +58,13 @@ To run it it's nessesary to install:
 
 
 TO DO:
-- wxWidgets version, suitable to other KiCAD programs.
-- On today it recognized only straight lines of edge cutout layer.
+- Split Margin setup onto independent X and Y axes (almost done already).
+- Support for positioning fiducial (first draw done in secret ugly code with not yet working dialog).
+- Very useful will be using settings file per project with output directory choice etc.
 - Last used files list.
-- Own net names for every clone which has net atributes(zones, tracks, vias and pads).
+- Drop custom layers clonning.
+- Direct output to Gerber(already supported) and drill(I'm not sure yet that drill is supported in KiCAD pcbnew scripting) files.
+- Own net names for every clone which has net attributes(zones, tracks, vias and pads).
+- Add some edge cutout visualization.
+- Add support for compliment 180° rotation with cutout by generated on the fly NPTH oval or micro-drill pads with preselected tool diameter. This has the advantage that you do not need to create an additional program for CNC milling machines, because everything is contained in the drilling file.
+- Recognized more complicated lines of edge cutout layer.

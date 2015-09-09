@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 import gtk, pango
-from os import path as pt, chdir as cd
+from os import path as ph, chdir as cd
 
 class EasyTextView(gtk.TextView):
 	def __init__(self):
@@ -343,7 +343,7 @@ class panelizeUI:
 	def uiInit(ui):
 		from gobject import TYPE_STRING as goStr, TYPE_INT as goInt
 		apw =  ui.apw
-		ui.callDir = pt.dirname(pt.abspath(__file__))
+		ui.callDir = ph.dirname(ph.abspath(__file__))
 		cd(ui.callDir)
 		ui.version = .86
 		ui.title = "PCBnew python module based Panelizator v.%0.2f. For BZR>5161" % ui.version
@@ -378,7 +378,7 @@ class panelizeUI:
 
 		ui.buttonProceed = ui.apw.Butt("Proceed", mainFrame, 0, 0, 80, stockID=gtk.STOCK_MEDIA_PLAY)
 
-		ui.logoBigPixbuf = gtk.gdk.pixbuf_new_from_file(pt.realpath(pt.expanduser("pics/panelize-pcb.svg")))
+		ui.logoBigPixbuf = gtk.gdk.pixbuf_new_from_file(ph.realpath(ph.expanduser("pics/panelize-pcb.svg")))
 		gtk.window_set_default_icon_list(ui.logoBigPixbuf, )
 		ui.imageLogo = gtk.Image()
 		ui.imageLogo.set_from_pixbuf(ui.logoBigPixbuf)

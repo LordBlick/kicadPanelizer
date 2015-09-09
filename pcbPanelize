@@ -6,7 +6,7 @@
 
 from pcbnew import LoadBoard, DRAWSEGMENT as DS, DIMENSION as DIMN, \
 	Edge_Cuts as Cutout, wxPoint as wxPt, FromMils, GetKicadConfigPath as cfgPath
-from os import path as pt
+from os import path as ph
 class panelizePCB:
 	def __init__(self):
 		self.uiInit()
@@ -173,7 +173,7 @@ class panelizePCB:
 		fileName = self.cfg['lastFileName'] if (hasattr(self, 'cfg')\
 				and(self.cfg.has_key('lastFileName'))) else ''
 		if bUpEmptyTxt or(fileName):
-			ui.txtFilename.set_text(fileName.replace(pt.expanduser('~'), '~'))
+			ui.txtFilename.set_text(fileName.replace(ph.expanduser('~'), '~'))
 		ui.buttonProceed.set_sensitive(bool(fileName))
 
 	def appDropFilename(self):
@@ -182,9 +182,9 @@ class panelizePCB:
 
 	def appPanelize(self):
 		ui = self.ui
-		if self.cfg.has_key('lastFileName') and(pt.isfile(self.cfg['lastFileName'])):
+		if self.cfg.has_key('lastFileName') and(ph.isfile(self.cfg['lastFileName'])):
 			fileNamePCB = self.cfg['lastFileName']
-			uiFileName = fileNamePCB.replace(pt.expanduser('~'), '~')
+			uiFileName = fileNamePCB.replace(ph.expanduser('~'), '~')
 			fileNameSave = "%s-panel.%s" % tuple(fileNamePCB.rsplit('.', 1))
 			try:
 				pcb = LoadBoard(fileNamePCB)
@@ -208,13 +208,13 @@ class panelizePCB:
 				self.appDropFilename()
 				return
 			pcb.Save(fileNameSave)
-			ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(pt.expanduser('~'), '~'))
+			ui.logView.insert_end("Saved in file:\n\t'%s'\n"% fileNameSave.replace(ph.expanduser('~'), '~'))
 
 	def appFileName(self):
 		ui = self.ui
 		apw = ui.apw
 		lastFileName = self.cfg.get('lastFileName')
-		lastDir = pt.dirname(lastFileName) if lastFileName else ui.callDir
+		lastDir = ph.dirname(lastFileName) if lastFileName else ui.callDir
 		newFilename = apw.dialogChooseFile(parent=ui.mainWindow,
 			startDir=lastDir, title="Select file to read", bShowHidden=True)
 		if newFilename:
@@ -251,9 +251,9 @@ class panelizePCB:
 	def appCfgLoad(self):
 		ui = self.ui
 		self.cfg = {}
-		self.cfgFileName = pt.normpath("%s/%s.conf" % (cfgPath(), pt.basename(pt.abspath(__file__))))
-		print("cfg:%s" % self.cfgFileName.replace(pt.expanduser('~'), '~'))
-		if pt.isfile(self.cfgFileName):
+		self.cfgFileName = ph.normpath("%s/%s.conf" % (cfgPath(), ph.basename(ph.abspath(__file__))))
+		print("cfg:%s" % self.cfgFileName.replace(ph.expanduser('~'), '~'))
+		if ph.isfile(self.cfgFileName):
 			hFileCfg = open(self.cfgFileName, 'r')
 			cfgData = hFileCfg.read()
 			hFileCfg.close()
@@ -296,9 +296,9 @@ class panelizePCB:
 		for keyD in('CheckMargin', 'CheckSpaceX', 'CheckSpaceY'):
 			self.cfg[keyD] = "%i" % getattr(ui, keyD[5:]).get_checked()
 		self.cfg['Angle'] = "%i" % ui.rfAngle.get_active()
-		cfgDir = pt.dirname(self.cfgFileName)
+		cfgDir = ph.dirname(self.cfgFileName)
 		from os import makedirs
-		if not(pt.isdir(cfgDir)):
+		if not(ph.isdir(cfgDir)):
 			makedirs(cfgDir, 0o755)
 		if self.lastcfg!=self.cfg:
 			hFileCfg = open(self.cfgFileName, 'w')
