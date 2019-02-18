@@ -4,7 +4,7 @@ description: KiCAD PCB panelization helper
 author: LordBlick
 tags: KiCAD, PCB, EDA, electronics
 created:  2014.10.03
-modified: 2015.09.09
+modified: 2019.02.18
 
 ---
 
