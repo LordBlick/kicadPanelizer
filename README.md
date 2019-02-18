@@ -68,3 +68,4 @@ TO DO:
 - Add some edge cutout visualization.
 - Add support for complement 180° rotatated (half-turn) „L”-like boards with cutout by generated on the fly NPTH oval or micro-drill pads with preselected tool diameter. This has the advantage that you do not need to create an additional program for CNC milling machines, because everything is contained in the drilling file.
 - Recognized more complicated lines of edge cutout layer.
+- Add support to bridges on edges for milling method of separate single PCB (besides both sides notch cutting with a thin diamond blade)
