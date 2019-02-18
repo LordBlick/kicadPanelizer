@@ -122,7 +122,15 @@ class panelizePCB:
 					elif self.brdDrawInEdge(Item, bd) or(type(Item) is DIMN):
 						Item.remove = True
 						continue # do not clone dimmensions or edge lines, a last one will be exchanged with generated grid
-					newItem = Item.Duplicate(True)
+					try:
+						newItem = Item.Duplicate()
+					except  Exception as err:
+						try:
+							newItem = Item.Duplicate(True)
+						except  Exception as err:
+							self.errReport("Temporaty unsolvable error due to different versions of kicad pcb builds.\n"+\
+								"\nError message:\n\t%s\n" % (err))
+							return
 					pcb.Add(newItem)
 					newItem.Move(vect)
 		dn = lambda max_n, n, vn, space:\
