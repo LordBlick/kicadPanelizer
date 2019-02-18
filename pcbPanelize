@@ -122,7 +122,7 @@ class panelizePCB:
 					elif self.brdDrawInEdge(Item, bd) or(type(Item) is DIMN):
 						Item.remove = True
 						continue # do not clone dimmensions or edge lines, a last one will be exchanged with generated grid
-					newItem = Item.Duplicate()
+					newItem = Item.Duplicate(True)
 					pcb.Add(newItem)
 					newItem.Move(vect)
 		dn = lambda max_n, n, vn, space:\
