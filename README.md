@@ -51,7 +51,7 @@ Unix based OS user can set execute privileges to execute as any other shell scri
 To run it it's nessesary to install:
 - Univers Condensed Font from [this](http://ttfonts.net/font/40323_UniversCondensed.htm) or any other site. On Unix-like systems simply copy to '~/.local/share/fonts' and run `fc-chache`.
 - [Python interpreter](https://www.python.org/downloads/) in version 2 (On today newests is 2.7.8). Don't miss with version 3 (On today newests is 3.4.1).
-- [KiCAD](http://kicad-pcb.org/) compiled with allowed python scripting. Minimum BZR version is 5161.
+- [KiCAD](http://kicad.org/) compiled with allowed python scripting. Minimum BZR version is 5161.
 - [GTK Libraries](http://www.gtk.org/download/).
 
 
